@@ -25,7 +25,7 @@ final class Recorder: NSObject, ObservableObject, SCContentSharingPickerObserver
             for id in steps.map(\.id) {
                 guard let i = steps.firstIndex(where: { $0.id == id }) else { continue }
                 let step = steps[i]
-                if step.originalCaption != nil { continue }
+                if step.originalCaption != nil || !step.canPolish { continue }
                 if let better = await CaptionPolisher.polish(step.caption, appName: step.appName),
                    let j = steps.firstIndex(where: { $0.id == id }) {
                     steps[j].originalCaption = steps[j].caption
@@ -37,6 +37,16 @@ final class Recorder: NSObject, ObservableObject, SCContentSharingPickerObserver
             polishing = false
             if failed > 0 { message = "\(failed) caption(s) kept as-is (model answer unusable)." }
         }
+    }
+
+    func insertTextStep(at index: Int) -> UUID {
+        StepList.insertTextStep(into: &steps, at: index)
+    }
+
+    func removeScreenshot(of id: UUID) {
+        guard let i = steps.firstIndex(where: { $0.id == id }) else { return }
+        if let f = steps[i].imageFile { try? FileManager.default.removeItem(at: sessionDir.appendingPathComponent(f)) }
+        steps[i].removeImage()
     }
 
     func revertPolish() {

@@ -53,3 +53,31 @@ public struct Step: Codable, Identifiable, Equatable {
         self.clickX = clickX; self.clickY = clickY; self.appName = appName
     }
 }
+
+public extension Step {
+    /// A step the user added by hand: no app and no screenshot.
+    static func textOnly(caption: String = "") -> Step { Step(caption: caption, appName: "") }
+
+    var hasImage: Bool { imageFile != nil }
+
+    /// Only recorded steps with a caption are worth sending to the AI polisher.
+    var canPolish: Bool { !appName.isEmpty && !caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// Removes the screenshot but keeps the step as text only.
+    mutating func removeImage() {
+        imageFile = nil; clickX = nil; clickY = nil
+    }
+}
+
+public enum StepList {
+    /// Inserts a new empty text-only step so it ends up at `index` (clamped); returns its id.
+    @discardableResult
+    public static func insertTextStep(into steps: inout [Step], at index: Int) -> UUID {
+        let step = Step.textOnly()
+        steps.insert(step, at: min(max(index, 0), steps.count))
+        return step.id
+    }
+
+    /// 1-based number shown for the step at `index`.
+    public static func number(at index: Int) -> Int { index + 1 }
+}

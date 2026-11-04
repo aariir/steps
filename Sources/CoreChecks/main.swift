@@ -30,4 +30,20 @@ check("guard accepts", CaptionGuard.accept(original: orig, polished: "3. Select 
 check("guard rejects lost name", CaptionGuard.accept(original: orig, polished: "Click the save button") == nil, true)
 check("guard rejects empty", CaptionGuard.accept(original: orig, polished: "  ") == nil, true)
 
+var list = [Step(caption: "A", appName: "X"), Step(caption: "B", appName: "X")]
+let newID = StepList.insertTextStep(into: &list, at: 1)
+check("insert middle", list.map(\.caption), ["A", "", "B"])
+check("insert id", list[1].id == newID && !list[1].hasImage, true)
+StepList.insertTextStep(into: &list, at: 0)
+StepList.insertTextStep(into: &list, at: 99)
+check("insert ends", [list.first?.caption, list.last?.caption].count == 2 && list.count == 5, true)
+list.removeAll { $0.id == newID }
+check("renumber after delete", list.indices.map { StepList.number(at: $0) }, [1, 2, 3, 4])
+var shot = Step(caption: "A", imageFile: "a.png", clickX: 0.1, clickY: 0.2, appName: "X")
+shot.removeImage()
+check("remove image", shot.imageFile == nil && shot.clickX == nil && shot.clickY == nil && shot.caption == "A", true)
+check("text step not polished", Step.textOnly(caption: "Wait").canPolish, false)
+check("recorded step polished", Step(caption: "Click", appName: "X").canPolish, true)
+check("guard empty original", CaptionGuard.accept(original: "", polished: "") == nil, true)
+
 exit(failures == 0 ? 0 : 1)

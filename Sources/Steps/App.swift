@@ -46,6 +46,7 @@ struct MenuView: View {
 
 struct ReviewView: View {
     @EnvironmentObject var rec: Recorder
+    @FocusState private var focused: UUID?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -60,17 +61,20 @@ struct ReviewView: View {
                 Button("Done") { rec.finishReview() }
             }
             if rec.steps.isEmpty {
-                Text("No steps were recorded.").foregroundStyle(.secondary).frame(maxHeight: .infinity)
+                Text("No steps yet.").foregroundStyle(.secondary)
+                AddStepButton { focused = rec.insertTextStep(at: 0) }
+                Spacer()
             } else {
                 List {
-                    ForEach($rec.steps) { $step in
-                        StepRow(step: $step,
-                                number: (rec.steps.firstIndex { $0.id == step.id } ?? 0) + 1,
-                                dir: rec.sessionDir) {
+                    ForEach(Array($rec.steps.enumerated()), id: \.element.id) { index, $step in
+                        AddStepButton { focused = rec.insertTextStep(at: index) }
+                        StepRow(step: $step, number: StepList.number(at: index), dir: rec.sessionDir,
+                                focused: $focused,
+                                onRemoveImage: { rec.removeScreenshot(of: step.id) }) {
                             rec.steps.removeAll { $0.id == step.id }
                         }
                     }
-                    .onMove { rec.steps.move(fromOffsets: $0, toOffset: $1) }
+                    AddStepButton { focused = rec.insertTextStep(at: rec.steps.count) }
                 }
             }
             if let m = rec.message { Text(m).foregroundStyle(.red) }
@@ -80,23 +84,44 @@ struct ReviewView: View {
     }
 }
 
+struct AddStepButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        HStack {
+            Spacer()
+            Button(action: action) { Image(systemName: "plus.circle") }
+                .buttonStyle(.borderless)
+                .help("Add a text step here")
+            Spacer()
+        }
+    }
+}
+
 struct StepRow: View {
     @Binding var step: Step
     let number: Int
     let dir: URL
+    var focused: FocusState<UUID?>.Binding
+    let onRemoveImage: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(number).").font(.headline).frame(width: 28, alignment: .trailing)
             VStack(alignment: .leading, spacing: 6) {
-                TextField("Caption", text: $step.caption, axis: .vertical).textFieldStyle(.roundedBorder)
+                TextField(step.hasImage ? "Caption" : "Type the text for this step",
+                          text: $step.caption, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .focused(focused, equals: step.id)
                 if let f = step.imageFile, let img = NSImage(contentsOf: dir.appendingPathComponent(f)) {
                     Image(nsImage: img).resizable().scaledToFit().frame(maxHeight: 160)
                         .overlay(RoundedRectangle(cornerRadius: 3).stroke(.quaternary))
+                    Button("Delete screenshot", action: onRemoveImage).buttonStyle(.link)
                 }
             }
-            Button(role: .destructive, action: onDelete) { Image(systemName: "trash") }.buttonStyle(.borderless)
+            Button(role: .destructive, action: onDelete) { Image(systemName: "trash") }
+                .buttonStyle(.borderless).help("Delete this step")
         }
         .padding(.vertical, 4)
     }
