@@ -1,0 +1,28 @@
+# Build output
+.build/
+build/
+*.app
+*.o
+*.dSYM/
+.swiftpm/
+Package.resolved
+
+# Xcode
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+
+# macOS and editors
+.DS_Store
+.AppleDouble
+.idea/
+.vscode/
+*.swp
+
+# Generated or local files
+*.pdf
+*.log
+*.p12
+*.pem
+.env
+docs/
