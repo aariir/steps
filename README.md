@@ -13,7 +13,7 @@ Get a PDF guide with a screenshot and a short sentence for every step recorded. 
 1. Click the menu bar icon and choose Start recording.
 2. Pick a window or the whole screen.
 3. Do the steps. Every click is captured.
-4. Stop, fix any sentence you like, delete screenshots or steps, and save the PDF. Use the plus button between steps to add a text-only step.
+4. Choose "Stop and review" from the menu bar, fix any sentence you like, delete screenshots or steps, and save the PDF.
 
 The first time, the app walks you through the permissions it needs.
 
