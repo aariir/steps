@@ -46,4 +46,11 @@ check("text step not polished", Step.textOnly(caption: "Wait").canPolish, false)
 check("recorded step polished", Step(caption: "Click", appName: "X").canPolish, true)
 check("guard empty original", CaptionGuard.accept(original: "", polished: "") == nil, true)
 
+check("pack empty", PagePacker.pack(hasImage: []), [])
+check("pack text only", PagePacker.pack(hasImage: Array(repeating: false, count: 9)), [[0, 1, 2, 3], [4, 5, 6, 7], [8]])
+check("pack many shots", PagePacker.pack(hasImage: Array(repeating: true, count: 5)), [[0, 1], [2, 3], [4]])
+check("pack mixed", PagePacker.pack(hasImage: [true, false, true, false, false, true]), [[0, 1, 2, 3], [4, 5]])
+check("pack shot limit with text", PagePacker.pack(hasImage: [true, true, true, false]), [[0, 1], [2, 3]])
+check("pack text fills then shot", PagePacker.pack(hasImage: [false, false, false, false, true]), [[0, 1, 2, 3], [4]])
+
 exit(failures == 0 ? 0 : 1)
