@@ -35,7 +35,7 @@ enum PDFExporter {
     struct ExportError: Error {}
 
     static func export(title: String, steps: [Step], sessionDir: URL, to url: URL) throws {
-        let pageW: CGFloat = 595, pageH: CGFloat = 842, margin: CGFloat = 48
+        let pageW: CGFloat = 595, pageH: CGFloat = 842, margin: CGFloat = 40
         let contentW = pageW - margin * 2
         var box = CGRect(x: 0, y: 0, width: pageW, height: pageH)
         guard let ctx = CGContext(url as CFURL, mediaBox: &box, nil) else { throw ExportError() }
@@ -69,36 +69,44 @@ enum PDFExporter {
         }
 
         newPage()
-        y -= draw(title, font: .boldSystemFont(ofSize: 26)) + 8
-        y -= draw(Date().formatted(date: .long, time: .omitted), font: .systemFont(ofSize: 11), color: .gray) + 20
+        y -= draw(title, font: .boldSystemFont(ofSize: 26)) + 6
+        y -= draw(Date().formatted(date: .long, time: .omitted), font: .systemFont(ofSize: 11), color: .gray) + 14
 
-        let captionFont = NSFont.systemFont(ofSize: 14, weight: .semibold)
-        let maxImageH: CGFloat = 330
+        let captionFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        let gap: CGFloat = 12, captionGap: CGFloat = 6
 
-        for (i, step) in steps.enumerated() {
-            var imageSize = CGSize.zero
-            var cg: CGImage?
-            if let file = step.imageFile,
-               let src = CGImageSourceCreateWithURL(sessionDir.appendingPathComponent(file) as CFURL, nil),
-               let img = CGImageSourceCreateImageAtIndex(src, 0, nil) {
-                let scale = min(contentW / CGFloat(img.width), maxImageH / CGFloat(img.height), 1)
-                imageSize = CGSize(width: CGFloat(img.width) * scale, height: CGFloat(img.height) * scale)
-                cg = img
+        // Up to 2 screenshot steps and 4 rows per page; screenshots share the height left after text-only rows.
+        let pages = PagePacker.pack(hasImage: steps.map(\.hasImage))
+        for (pageIndex, indices) in pages.enumerated() {
+            if pageIndex > 0 { newPage() }
+            let texts = indices.map { "\($0 + 1). \(steps[$0].caption)" }
+            let captionHeights = texts.map { measure($0, font: captionFont) }
+            let shotCount = indices.filter { steps[$0].hasImage }.count
+            let textRowsH = zip(indices, captionHeights).filter { !steps[$0.0].hasImage }.reduce(0) { $0 + $1.1 }
+            let available = y - margin - gap * CGFloat(indices.count - 1) - textRowsH
+            let rowH = shotCount == 0 ? 0 : min(available / CGFloat(shotCount), 340)
+
+            for (n, i) in indices.enumerated() {
+                let step = steps[i]
+                y -= draw(texts[n], font: captionFont)
+                if step.hasImage {
+                    y -= captionGap
+                    let imageAreaH = max(rowH - captionHeights[n] - captionGap, 40)
+                    if let file = step.imageFile,
+                       let src = CGImageSourceCreateWithURL(sessionDir.appendingPathComponent(file) as CFURL, nil),
+                       let img = CGImageSourceCreateImageAtIndex(src, 0, nil) {
+                        let scale = min(contentW / CGFloat(img.width), imageAreaH / CGFloat(img.height), 1)
+                        let size = CGSize(width: CGFloat(img.width) * scale, height: CGFloat(img.height) * scale)
+                        let rect = CGRect(x: margin, y: y - size.height, width: size.width, height: size.height)
+                        ctx.draw(img, in: rect)
+                        ctx.setStrokeColor(CGColor(gray: 0.75, alpha: 1))
+                        ctx.setLineWidth(0.5)
+                        ctx.stroke(rect)
+                    }
+                    y -= imageAreaH
+                }
+                y -= gap
             }
-            let text = "\(i + 1). \(step.caption)"
-            let needed = measure(text, font: captionFont) + 8 + (cg == nil ? 0 : imageSize.height + 8) + 16
-            if y - needed < margin { newPage() }
-
-            y -= draw(text, font: captionFont) + 8
-            if let cg {
-                let rect = CGRect(x: margin, y: y - imageSize.height, width: imageSize.width, height: imageSize.height)
-                ctx.draw(cg, in: rect)
-                ctx.setStrokeColor(CGColor(gray: 0.75, alpha: 1))
-                ctx.setLineWidth(0.5)
-                ctx.stroke(rect)
-                y -= imageSize.height + 8
-            }
-            y -= 16
         }
 
         if pageOpen { NSGraphicsContext.restoreGraphicsState(); ctx.endPDFPage() }
