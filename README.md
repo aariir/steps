@@ -1,6 +1,6 @@
 # Steps
 
-Make user guides with a screenshot and a short sentence for every step recorded. Inspired by Windows' Problem Step Recorder.
+Make user guides with a screenshot and a short sentence for every step recorded. Inspired by Windows' Problem Steps Recorder.
 
 ## Install
 
