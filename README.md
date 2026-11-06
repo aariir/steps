@@ -1,6 +1,6 @@
 # Steps
 
-Get a PDF guide with a screenshot and a short sentence for every step recorded. PSR equivalent for macOS
+Make user guides with a screenshot and a short sentence for every step recorded. Inspired by Windows' Problem Step Recorder.
 
 ## Install
 
